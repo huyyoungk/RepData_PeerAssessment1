@@ -8,18 +8,53 @@ output:
 
 ## Loading and preprocessing the data
 
+# download file from web
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", destfile = "activity.zip", mode="wb")
+# unzip data and read 
+unzip("activity.zip")
+stepdata <- read.csv("activity.csv", header = TRUE)
 
 
 ## What is mean total number of steps taken per day?
 
-
+library(magrittr)
+library(dplyr)
+## 
+## Attaching package: 'dplyr'
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+databydate <- stepdata %>% select(date, steps) %>% group_by(date) %>% summarize(tsteps= sum(steps)) %>%na.omit()
+mean(databydate$tsteps)
 
 ## What is the average daily activity pattern?
 
-
+library(ggplot2)
+databyinterval <- stepdata%>% select(interval, steps) %>% na.omit() %>% group_by(interval) %>% summarize(tsteps= mean(steps)) 
+ggplot(databyinterval, aes(x=interval, y=tsteps))+ geom_line()
 
 ## Imputing missing values
 
+# generate listing of NA's
+missingVals <- sum(is.na(data))
+## Warning in is.na(data): is.na() applied to non-(list or vector) of type
+## 'closure'
 
+missingVals
+## [1] 0
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+meandata$date <- as.Date(meandata$date)
+meandata$weekday <- weekdays(meandata$date)
+meandata$weekend <- ifelse(meandata$weekday=="Saturday" | meandata$weekday=="Sunday", "Weekend", "Weekday" )
+library(ggplot2)
+meandataweekendweekday <- aggregate(meandata$steps , by= list(meandata$weekend, meandata$interval), na.omit(mean))
+names(meandataweekendweekday) <- c("weekend", "interval", "steps")
+
+ggplot(meandataweekendweekday, aes(x=interval, y=steps, color=weekend)) + geom_line()+
+facet_grid(weekend ~.) + xlab("Interval") + ylab("Mean of Steps") +
+    ggtitle("Comparison of Average Number of Steps in Each Interval")
